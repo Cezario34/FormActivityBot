@@ -4,52 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7e538a6a-2f84-4c74-ba43-8747546eb45d" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/FormActivityBot.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/bot.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/enums/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/enums/roles.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/filters/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/filters/filters.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/handlers/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/handlers/admin.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/handlers/others.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/handlers/settings.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/handlers/test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/handlers/user.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/helper_dict/helper_dict.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/keyboards/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/keyboards/info_kb.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/keyboards/keyboard.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/keyboards/menu_button.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/lexicon/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/lexicon/lexicon.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/middlewares/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/middlewares/database.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/modules/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/modules/modules.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/states/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/bot/states/states.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/infrastructure/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/infrastructure/database/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/infrastructure/database/connections.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/infrastructure/database/db.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/quest.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/config/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/migrations/create_tables.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
-    </list>
+    <list default="true" id="7e538a6a-2f84-4c74-ba43-8747546eb45d" name="Changes" comment="add admin panel, edit lexicon" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -167,6 +122,19 @@
       <option name="presentableId" value="Default" />
       <updated>1763991151837</updated>
     </task>
+    <task id="LOCAL-00001" summary="add admin panel, edit lexicon">
+      <option name="closed" value="true" />
+      <created>1763995873222</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1763995873222</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="add admin panel, edit lexicon" />
+    <option name="LAST_COMMIT_MESSAGE" value="add admin panel, edit lexicon" />
   </component>
 </project>
