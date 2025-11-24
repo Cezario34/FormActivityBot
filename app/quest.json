@@ -1,0 +1,112 @@
+{
+  "form_id": "military_profile",
+  "version": 1,
+  "title": "Анкета сотрудника",
+  "questions": [
+    {
+      "id": "q1_fio",
+      "order": 0,
+      "text": "Введите ФИО полностью\nНапример: Иванов Иван Иванович",
+      "type": "text",
+      "required": true,
+      "validation": { "min_len": 2, "max_len": 120 }
+    },
+    {
+      "id": "q5_birthdate",
+      "order": 7,
+      "text": "Введите день рождения(дд.мм.гггг)\nНапример: 27.12.1990",
+      "type": "date",
+      "required": true,
+      "validation": { "format": "dd.mm.yyyy", "min_age": 16, "max_age": 70 }
+    },
+    {
+      "id": "q6_phone",
+      "order": 1,
+      "text": "Введите номер телефона\nНапример: +79123456789",
+      "type": "phone",
+      "required": true,
+      "validation": { "regex": "^\\+?7\\d{10}$" }
+    },
+    {
+      "id": "q2_rank",
+      "order": 2,
+      "text": "Введите звание\nНапример: Рядовой",
+      "type": "text",
+      "required": true,
+      "validation": { "min_len": 2, "max_len": 60 }
+    },
+    {
+      "id": "q3_position",
+      "order": 3,
+      "text": "Введите должность\nНапример:Связист",
+      "type": "text",
+      "required": true,
+      "validation": { "min_len": 2, "max_len": 80 }
+    },
+    {
+      "id": "q4_unit",
+      "order": 4,
+      "text": "Введите подразделение:\nНапример:2 подразделение",
+      "type": "text",
+      "required": true,
+      "validation": { "min_len": 2, "max_len": 80 }
+    },
+    {
+      "id": "q4_2_platoon",
+      "order": 6,
+      "text": "Выберите взвод",
+      "type": "choice",
+      "required": true,
+      "options": ["1 вз", "2 вз", "3 вз"]
+    },
+    {
+      "id": "q7_badge",
+      "order": 8,
+      "text": "Введите модель бейджика.\nНапример: хххх-хххх",
+      "type": "choice",
+      "required": true,
+      "options": ["1", "2", "3"]
+    },
+    {
+      "id": "q7_badge",
+      "order": 9,
+      "text": "Введите номер прикрепленного бейджика.\nНапример: хххх-хххх",
+      "type": "text",
+      "required": true,
+      "validation": { "min_len": 3, "max_len": 50 }
+    },
+
+    {
+      "id": "q8_1_head",
+      "order": 10,
+      "text": "Введите размер головы.\nНапример: 50",
+      "type": "number",
+      "required": true,
+      "validation": { "min": 40, "max": 90 }
+    },
+    {
+      "id": "q8_2_clothes",
+      "order": 11,
+      "text": "Введите размер одежды\nНапример: 50",
+      "type": "number",
+      "required": true,
+      "validation": { "min_len": 1, "max_len": 150 }
+    },
+    {
+      "id": "q8_3_height",
+      "order": 12,
+      "text": "Введите рост (см)\nНапример: 180",
+      "type": "number",
+      "required": true,
+      "validation": { "min": 140, "max": 220 }
+    },
+    {
+      "id": "q8_4_shoes",
+      "order": 13,
+      "text": "Введите размер обуви\nНапример: 43",
+      "type": "number",
+      "required": true,
+      "validation": { "min": 35, "max": 55 }
+    }
+  ]
+}
