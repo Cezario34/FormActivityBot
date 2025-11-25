@@ -74,7 +74,7 @@ def extract_answer(message, q: dict):
         try:
             dt = datetime.strptime(text, "%d.%m.%Y").date()
         except ValueError:
-            return None, "Неверный формат даты. Пример: 25.12.1990."
+            return None, "Неверный формат даты. Пример: 25.12.1990"
         return dt.isoformat(), None  # чтобы хранить единообразно
 
     # 5) Телефон
@@ -85,7 +85,7 @@ def extract_answer(message, q: dict):
         v = q.get("validation", {})
         pattern = v.get("regex")
         if pattern and not re.match(pattern, phone):
-            return None, "Номер в формате +7XXXXXXXXXX."
+            return None, "Номер в формате +7XXXXXXXXXX"
         return phone, None
 
     # Если тип неизвестен — просто текстом

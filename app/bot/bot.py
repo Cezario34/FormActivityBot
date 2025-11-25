@@ -64,6 +64,7 @@ async def main(config: Config) -> None:
     # dp.update.middleware(ActivityCounterMiddleware())
     # dp.update.middleware(LangSettingsMiddleware())
     # dp.update.middleware(TranslatorMiddleware())
+    await bot.delete_webhook(drop_pending_updates=True)
 
     # Запускаем поллинг
     try:

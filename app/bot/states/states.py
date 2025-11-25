@@ -5,4 +5,19 @@ class FormFilling(StatesGroup):
 
 
 class EditAnswer(StatesGroup):
-    edit_answer = State()
+    short_name = State()
+    text = State()
+    q_type = State()
+    required = State()
+    options = State()
+    validation = State()
+
+
+class DeleteQuestion(StatesGroup):
+    wait_id = State()
+
+class EditQuestion(StatesGroup):
+    wait_id = State()
+    choose_field = State()
+    edit_value = State()
+    edit_required = State()
