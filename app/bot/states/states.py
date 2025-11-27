@@ -3,6 +3,10 @@ from aiogram.fsm.state import StatesGroup, State
 class FormFilling(StatesGroup):
     answer = State()
 
+class MenuEdit(StatesGroup):
+    edit_quest = State()
+
+
 
 class EditAnswer(StatesGroup):
     short_name = State()

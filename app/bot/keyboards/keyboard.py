@@ -41,5 +41,5 @@ def kb_edit_fields() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="Текст вопроса",        callback_data="eq:text")],
         [InlineKeyboardButton(text="Обязательность",       callback_data="eq:required")],
         [InlineKeyboardButton(text="Варианты (options)",   callback_data="eq:options")],
-        [InlineKeyboardButton(text="Validation (JSON)",    callback_data="eq:validation")],
+        # [InlineKeyboardButton(text="Validation (JSON)",    callback_data="eq:validation")],
     ])

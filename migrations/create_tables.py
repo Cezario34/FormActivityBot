@@ -137,7 +137,7 @@ async def main():
                              'Введите звание
                              Например: Рядовой',
                              'text', 2, true,
-                             '{"min_len": 2, "max_len": 60}'::jsonb,
+                             '{"min_len": 1, "max_len": 150}'::jsonb,
                              NULL),
                             
                             -- 3
@@ -145,7 +145,7 @@ async def main():
                              'Введите должность
                               Например:Связист',
                              'text', 3, true,
-                             '{"min_len": 2, "max_len": 80}'::jsonb,
+                             '{"min_len": 1, "max_len": 150}'::jsonb,
                              NULL),
                             
                             -- 4
@@ -153,7 +153,7 @@ async def main():
                              'Введите подразделение:
                              Например:2 подразделение',
                              'text', 4, true,
-                             '{"min_len": 2, "max_len": 80}'::jsonb,
+                             '{"min_len": 1, "max_len": 150}'::jsonb,
                              NULL),
                             
                             -- 6
@@ -184,7 +184,7 @@ async def main():
                              'Введите номер прикрепленного бейджика.
                              Например: хххх-хххх',
                              'text', 9, true,
-                             '{"min_len": 3, "max_len": 50}'::jsonb,
+                             '{"min_len": 1, "max_len": 150}'::jsonb,
                              NULL),
                             
                             -- 10
@@ -192,7 +192,7 @@ async def main():
                              'Введите размер головы.
                              Например: 50',
                              'number', 10, true,
-                             '{"min": 40, "max": 90}'::jsonb,
+                             '{"min": 10, "max": 100}'::jsonb,
                              NULL),
                             
                             -- 11
@@ -200,7 +200,7 @@ async def main():
                              'Введите размер одежды
                              Например: 50',
                              'number', 11, true,
-                             '{"min_len": 1, "max_len": 150}'::jsonb,
+                             '{"min_len": 1, "max_len": 250}'::jsonb,
                              NULL),
                             
                             -- 12
@@ -208,7 +208,7 @@ async def main():
                              'Введите рост (см)
                              Например: 180',
                              'number', 12, true,
-                             '{"min": 140, "max": 220}'::jsonb,
+                             '{"min": 110, "max": 330}'::jsonb,
                              NULL),
                             
                             -- 13
@@ -216,7 +216,7 @@ async def main():
                              'Введите размер обуви
                              Например: 43',
                              'number', 13, true,
-                             '{"min": 35, "max": 55}'::jsonb,
+                             '{"min": 15, "max": 95}'::jsonb,
                              NULL);
 
                         """

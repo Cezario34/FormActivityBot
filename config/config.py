@@ -47,7 +47,7 @@ class Config:
 
 def load_config(path: str | None = None) -> Config:
     env = Env()
-    env.read_env(".env")
+    env.read_env(".env", override=True)
 
     token = env("BOT_TOKEN")
 

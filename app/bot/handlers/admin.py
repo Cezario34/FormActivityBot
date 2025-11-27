@@ -72,6 +72,10 @@ async def get_menu_edit(message: Message, state: FSMContext):
                          reply_markup=create_kb(edit_form_dict))
 
 
+@admin_router.message(F.text, ~StateFilter(default_state))
+async def other_message(message: Message):
+    await message.answer('Вы сейчас находитесь в меню редактирования/изменения/удаления вопроса\n'
+                         'Если вы хотите выйти из него наберите или нажмите на команду /cancel_edit')
 
 @admin_router.message(F.text == LEXICON_RU['delete_question'])
 @admin_router.message(F.text == LEXICON_RU['edit_question'])
@@ -211,8 +215,8 @@ async def edit_question_value(message: Message, state: FSMContext, conn: AsyncCo
         await state.clear()
         await message.answer(
             f"✅ Validation для вопроса ID {q_id} обновлён.\n"
-            f"{'Правила очищены.' if validation is None else 
-            'Новые правила применены.'}"
+        #     f"{'Правила очищены.' if validation is None else
+        #     'Новые правила применены.'}"
         )
         return
 
@@ -368,7 +372,6 @@ async def add_q_type(cb: CallbackQuery, state: FSMContext):
 async def add_q_required(cb: CallbackQuery, state: FSMContext):
     required_flag = cb.data.split(":", 1)[1] == "1"
     await state.update_data(required=required_flag)
-    print('я в меню реквайреда')
     data = await state.get_data()
     q_type = data["q_type"]
 
@@ -377,14 +380,14 @@ async def add_q_required(cb: CallbackQuery, state: FSMContext):
         await state.set_state(EditAnswer.options)
         await cb.message.edit_text(
             "5/5. Введи варианты ответа через запятую.\n\n"
-            "Например:\n1 вз, 2 вз, 3 вз"
+            "Например:\n 1, 2, 3, горячее, холодное"
         )
     else:
         # для остальных типов options не нужны, сразу спрашиваем validation
         await state.set_state(EditAnswer.validation)
-        await cb.message.edit_text(
-            VALIDATION_HINT
-            )
+        # await cb.message.edit_text(
+        #     VALIDATION_HINT
+        #     )
 
     await cb.answer()
 
@@ -406,21 +409,21 @@ async def add_q_options(message: Message, state: FSMContext):
 
 @admin_router.message(EditAnswer.validation)
 async def add_q_validation(message: Message, state: FSMContext, conn: AsyncConnection):
-    raw = message.text.strip()
-
-    # 1) Разбираем validation
-    if raw == "-" or raw == "":
-        validation = None
-    else:
-        import json
-        try:
-            validation = json.loads(raw)
-        except json.JSONDecodeError:
-            await message.answer(
-                "Не смог распарсить JSON.\n\n"
-                f"{VALIDATION_HINT}"
-                )
-            return
+#     raw = message.text.strip()
+#
+#     # 1) Разбираем validation
+#     if raw == "-" or raw == "":
+    validation = None
+    # else:
+    #     import json
+    #     try:
+    #         validation = json.loads(raw)
+    #     except json.JSONDecodeError:
+    #         await message.answer(
+    #             "Не смог распарсить JSON.\n\n"
+    #             f"{VALIDATION_HINT}"
+    #             )
+    #         return
 
     # 2) Достаём всё, что админ ввёл до этого
     data = await state.get_data()

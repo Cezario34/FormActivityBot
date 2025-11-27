@@ -46,13 +46,14 @@ async def process_start_command(
         state: FSMContext,
         admin_ids: list[int],
         ):
+
+
+    user_row = await get_user(conn, tg_id=message.from_user.id)
     if message.from_user.id in admin_ids:
         user_role = UserRole.ADMIN
 
     else:
         user_role = UserRole.USER
-
-    user_row = await get_user(conn, tg_id=message.from_user.id)
     if user_row is None:
         if message.from_user.id in admin_ids:
             user_role = UserRole.ADMIN
@@ -78,7 +79,7 @@ async def process_start_command(
 
     await message.answer(text=LEXICON_RU.get("/start"),
                          reply_markup=create_kb(lexicon_kb, width=2))
-    # await state.clear()
+    await state.clear()
 
 
 @user_router.message(Command(commands="help"))
@@ -107,6 +108,7 @@ async def cancel_form(message: Message, state: FSMContext):
     )
     # Сбрасываем состояние и очищаем данные, полученные внутри состояний
     await state.clear()
+
 
 @user_router.message(Command(commands="fillform"))
 @user_router.message(F.text == "Заполнить анкету")
