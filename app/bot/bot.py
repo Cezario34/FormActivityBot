@@ -53,17 +53,9 @@ async def main(config: Config) -> None:
     )
 
 
-    # Подключаем роутеры в нужном порядке
     logger.info("Including routers...")
     dp.include_routers(settings_router, admin_router, user_router, others_router)
-    #
-    # # Подключаем миддлвари в нужном порядке
-    # logger.info("Including middlewares...")
     dp.update.middleware(DataBaseMiddleware())
-    # dp.update.middleware(ShadowBanMiddleware())
-    # dp.update.middleware(ActivityCounterMiddleware())
-    # dp.update.middleware(LangSettingsMiddleware())
-    # dp.update.middleware(TranslatorMiddleware())
     await bot.delete_webhook(drop_pending_updates=True)
 
     # Запускаем поллинг

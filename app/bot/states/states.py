@@ -25,3 +25,8 @@ class EditQuestion(StatesGroup):
     choose_field = State()
     edit_value = State()
     edit_required = State()
+
+
+class EditFillform(StatesGroup):
+    choise_question = State()
+    new_answer = State()

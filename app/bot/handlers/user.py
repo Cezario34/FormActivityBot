@@ -20,15 +20,15 @@ from app.infrastructure.database.db import (
     get_question_by_order,
     get_first_question,
     get_active_form,
-    get_next_question_db
-)
+    get_next_question_db, get_all_answer, set_target_answer
+    )
 from aiogram.fsm.state import default_state, State, StatesGroup
 from app.bot.modules.modules import load_form_json, get_question, \
     extract_answer, get_next_question
 from psycopg.connection_async import AsyncConnection
 
 from app.bot.lexicon.lexicon import LEXICON_RU
-from app.bot.states.states import FormFilling
+from app.bot.states.states import FormFilling, EditFillform
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +149,6 @@ async def handle_answer(message: Message, state: FSMContext, conn: AsyncConnecti
     form_id = data["form_id"]
     cur_order = data["current_order"]
 
-    # 1) достаём текущий вопрос из БД
     cur_q = await get_question_by_order(conn, form_id, cur_order)
     if not cur_q:
         await message.answer("Текущий вопрос не найден. Сообщите администратору.")
@@ -189,8 +188,79 @@ async def handle_answer(message: Message, state: FSMContext, conn: AsyncConnecti
         reply_markup=keyboard_answer(next_q)
     )
 
-# # Этот хэндлер будет срабатывать на блокировку бота пользователем
-# @user_router.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=KICKED))
-# async def process_user_blocked_bot(event: ChatMemberUpdated, conn: AsyncConnection):
-#     logger.info("User %d has blocked the bot", event.from_user.id)
-#     await change_user_alive_status(conn, user_id=event.from_user.id, is_alive=False)
+@user_router.message(Command(commands='edit_fill'), StateFilter(default_state))
+@user_router.message(F.text == "Редактировать мою анкету", StateFilter(default_state))
+async def edit_fillform(message: Message, state: FSMContext, conn: AsyncConnection):
+    answers = await get_all_answer(conn=conn, tg_id=message.from_user.id)
+    if not answers:
+        await message.answer('Вы еще не прошли анкету')
+        return
+    lines = []
+    for i, row in enumerate(answers):
+        lines.append(f'{i+1}. {row['question_text']}\n'
+                     f'Ответ: {row["answer_text"]}')
+    await message.answer('\n\n'.join(lines))
+    await state.update_data(
+        answers_map=[
+            {
+                "answer_id": row["id"],
+                "question_id": row["question_id"],
+                'answer_text': row["answer_text"],
+            }
+            for row in answers
+        ]
+    )
+    await message.answer('Введите номер вопроса, который вы хотите изменить')
+    await state.set_state(EditFillform.choise_question)
+
+@user_router.message(EditFillform.choise_question)
+async def edit_fillform(message: Message, state: FSMContext, conn: AsyncConnection):
+    num_answ = message.text.strip()
+    if not num_answ:
+        await message.answer("Введите число")
+        return
+
+    try:
+        num = int(num_answ)
+    except ValueError:
+        await message.answer("Нужно ввести именно число, например: 1")
+        return
+
+    data = await state.get_data()
+    answer_map = data.get("answers_map", [])
+
+    if not answer_map:
+        await message.answer("Не удалось найти список ответов попробуйте еще раз")
+        await state.clear()
+        return
+
+    if not (1 <= num <= len(answer_map)):
+        await message.answer(f'Нужно число от 1 до {len(answer_map)}')
+        return
+
+    target = answer_map[num - 1]
+    await state.update_data(
+        target_question_id = target["question_id"],)
+
+    await message.answer("Введите новый ответ для выбранного вопроса")
+    await state.set_state(EditFillform.new_answer)
+
+@user_router.message(EditFillform.new_answer)
+async def edit_fillform_new_answer(message: Message, state: FSMContext, conn: AsyncConnection):
+    new_answer = message.text.strip()
+    if not new_answer:
+        await message.answer("Ответ не может быть пустым, введите заново")
+        return
+
+    data = await state.get_data()
+    question_id = data.get("target_question_id")
+
+    if not question_id:
+        await message.answer("Техническая ошибка: не найден id ответа. Попробуйте начать редактирование заново.")
+        await state.clear()
+        return
+
+    print(new_answer, message.from_user.id, question_id)
+    await set_target_answer(conn, new_answer, message.from_user.id, question_id)
+    await message.answer("✅ Ответ обновлён.")
+    await state.clear()

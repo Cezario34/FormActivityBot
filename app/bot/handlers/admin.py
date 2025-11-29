@@ -72,11 +72,6 @@ async def get_menu_edit(message: Message, state: FSMContext):
                          reply_markup=create_kb(edit_form_dict))
 
 
-@admin_router.message(F.text, ~StateFilter(default_state))
-async def other_message(message: Message):
-    await message.answer('Вы сейчас находитесь в меню редактирования/изменения/удаления вопроса\n'
-                         'Если вы хотите выйти из него наберите или нажмите на команду /cancel_edit')
-
 @admin_router.message(F.text == LEXICON_RU['delete_question'])
 @admin_router.message(F.text == LEXICON_RU['edit_question'])
 async def delete_or_edit_quest(message: Message, state: FSMContext, conn: AsyncConnection):
@@ -329,7 +324,7 @@ async def add_quest(message: Message, state: FSMContext):
     await state.set_state(EditAnswer.short_name)
     await message.answer(
         "Добавление нового вопроса.\n"
-        "1/5. Введи короткое название вопроса.\n\n"
+        "Введи короткое название вопроса.\n\n"
         "Например: ФИО, Телефон, Размер обуви."
         )
 
@@ -343,7 +338,7 @@ async def add_q_short_name(message: Message, state: FSMContext):
     await state.update_data(short_name=short_name)
     await state.set_state(EditAnswer.text)
     await message.answer(
-        "2/5. Теперь введи ПОЛНЫЙ текст вопроса, как его увидит пользователь.\n\n"
+        "Теперь введи ПОЛНЫЙ текст вопроса, как его увидит пользователь.\n\n"
         "Например:\nВведите размер обуви\nНапример: 43"
     )
 
@@ -356,7 +351,7 @@ async def add_q_text(message: Message, state: FSMContext):
 
     await state.update_data(text=text)
     await state.set_state(EditAnswer.q_type)
-    await message.answer("3/5. Выбери тип вопроса:", reply_markup=kb_q_types())
+    await message.answer("Выбери тип вопроса:", reply_markup=kb_q_types())
 
 @admin_router.callback_query(EditAnswer.q_type, F.data.startswith("qtype:"))
 async def add_q_type(cb: CallbackQuery, state: FSMContext):
@@ -364,79 +359,23 @@ async def add_q_type(cb: CallbackQuery, state: FSMContext):
 
     await state.update_data(q_type=q_type)
     await state.set_state(EditAnswer.required)
-    await cb.message.edit_text("4/5. Этот вопрос должен быть обязательным?",
+    await cb.message.edit_text("Этот вопрос должен быть обязательным?",
                                reply_markup=kb_required())
     await cb.answer()
 
-@admin_router.callback_query(EditAnswer.required, F.data.startswith("qreq:"))
-async def add_q_required(cb: CallbackQuery, state: FSMContext):
-    required_flag = cb.data.split(":", 1)[1] == "1"
-    await state.update_data(required=required_flag)
-    data = await state.get_data()
-    q_type = data["q_type"]
 
-    if q_type == "choice":
-        # нужно спросить варианты
-        await state.set_state(EditAnswer.options)
-        await cb.message.edit_text(
-            "5/5. Введи варианты ответа через запятую.\n\n"
-            "Например:\n 1, 2, 3, горячее, холодное"
-        )
-    else:
-        # для остальных типов options не нужны, сразу спрашиваем validation
-        await state.set_state(EditAnswer.validation)
-        # await cb.message.edit_text(
-        #     VALIDATION_HINT
-        #     )
-
-    await cb.answer()
-
-@admin_router.message(EditAnswer.options)
-async def add_q_options(message: Message, state: FSMContext):
-    raw = message.text.strip()
-    if not raw:
-        await message.answer("Нужно ввести хотя бы один вариант. Введи варианты через запятую.")
-        return
-
-    options = [x.strip() for x in raw.split(",") if x.strip()]
-    if not options:
-        await message.answer("Не получилось выделить варианты. Введи ещё раз через запятую.")
-        return
-
-    await state.update_data(options=options)
-    await message.answer(VALIDATION_HINT)
-    await state.set_state(EditAnswer.validation)
-
-@admin_router.message(EditAnswer.validation)
 async def add_q_validation(message: Message, state: FSMContext, conn: AsyncConnection):
-#     raw = message.text.strip()
-#
-#     # 1) Разбираем validation
-#     if raw == "-" or raw == "":
-    validation = None
-    # else:
-    #     import json
-    #     try:
-    #         validation = json.loads(raw)
-    #     except json.JSONDecodeError:
-    #         await message.answer(
-    #             "Не смог распарсить JSON.\n\n"
-    #             f"{VALIDATION_HINT}"
-    #             )
-    #         return
 
-    # 2) Достаём всё, что админ ввёл до этого
+    validation = None
     data = await state.get_data()
     short_name = data["short_name"]
     text = data["text"]
     q_type = data["q_type"]
     required = data["required"]
-    options = data.get("options")  # может быть None
+    options = data.get("options")
 
-    # 3) Берём активную форму
     form_id = await get_active_form(conn)
 
-    # 4) Добавляем вопрос в БД
     new_id = await add_question(
         conn,
         form_id=form_id["id"],
@@ -451,4 +390,40 @@ async def add_q_validation(message: Message, state: FSMContext, conn: AsyncConne
     # 5) Чистим состояние и говорим админу
     await state.clear()
     await message.answer(f"✅ Вопрос добавлен (id={new_id}).")
+
+@admin_router.callback_query(EditAnswer.required, F.data.startswith("qreq:"))
+async def add_q_required(cb: CallbackQuery, state: FSMContext, conn: AsyncConnection):
+    required_flag = cb.data.split(":", 1)[1] == "1"
+    await state.update_data(required=required_flag)
+    data = await state.get_data()
+    q_type = data["q_type"]
+
+    if q_type == "choice":
+        # нужно спросить варианты
+        await state.set_state(EditAnswer.options)
+        await cb.message.edit_text(
+            "Введи варианты ответа через запятую.\n\n"
+            "Например:\n 1, 2, 3, горячее, холодное"
+        )
+    else:
+        # для остальных типов options не нужны, сразу спрашиваем validation
+        await add_q_validation(cb.message, state, conn)
+    await cb.answer()
+
+@admin_router.message(EditAnswer.options)
+async def add_q_options(message: Message, state: FSMContext, conn: AsyncConnection):
+    raw = message.text.strip()
+    if not raw:
+        await message.answer("Нужно ввести хотя бы один вариант. Введи варианты через запятую.")
+        return
+
+    options = [x.strip() for x in raw.split(",") if x.strip()]
+    if not options:
+        await message.answer("Не получилось выделить варианты. Введи ещё раз через запятую.")
+        return
+
+    await state.update_data(options=options)
+    await add_q_validation(message, state, conn)
+
+
 

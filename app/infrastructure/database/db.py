@@ -182,3 +182,24 @@ async def get_next_question_db(conn: AsyncConnection, form_id: int, current_orde
             LIMIT 1;
         """, (form_id, current_order))
         return await cur.fetchone()
+
+
+async def get_all_answer(conn: AsyncConnection, tg_id: int) -> dict[str, Any] | None:
+    async with conn.cursor(row_factory=dict_row) as cur:
+        await cur.execute("""
+            SELECT *
+            FROM answers
+            where tg_id=%s
+            order by question_id asc
+        """, (tg_id,))
+        return await cur.fetchall()
+
+async def set_target_answer(conn: AsyncConnection, answer: str, tg_id: int, question_id: int) ->  None:
+    async with conn.cursor() as cur:
+        await cur.execute("""
+        UPDATE answers
+        set answer_text = %s
+        where tg_id = %s and question_id = %s
+        """, (answer, tg_id, question_id))
+
+
