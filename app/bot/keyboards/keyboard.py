@@ -33,6 +33,7 @@ def kb_required() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Обязательный", callback_data="qreq:1")],
         [InlineKeyboardButton(text="Необязательный", callback_data="qreq:0")],
+        [InlineKeyboardButton(text="Вернуться к выбору параметров", callback_data="qreq:back")],
     ])
 
 def kb_edit_fields() -> InlineKeyboardMarkup:
@@ -41,5 +42,5 @@ def kb_edit_fields() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="Текст вопроса",        callback_data="eq:text")],
         [InlineKeyboardButton(text="Обязательность",       callback_data="eq:required")],
         [InlineKeyboardButton(text="Варианты (options)",   callback_data="eq:options")],
-        # [InlineKeyboardButton(text="Validation (JSON)",    callback_data="eq:validation")],
+        [InlineKeyboardButton(text="Выбрать другой вопрос",    callback_data="eq:refresh")],
     ])

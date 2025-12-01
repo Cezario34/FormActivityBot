@@ -64,7 +64,7 @@ async def main(config: Config) -> None:
             bot,
             db_pool=db_pool,
             LEXICON_RU=LEXICON_RU,
-            admin_ids=config.bot.admin_ids
+            developer_ids=config.bot.developer_ids
         )
     except Exception as e:
         logger.exception(e)

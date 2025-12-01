@@ -124,13 +124,16 @@ async def get_all_answers(
     async with conn.cursor(row_factory=dict_row) as cursor:
         await cursor.execute(
             """
-            SELECT a.*,
-                   u.role
+            SELECT 
+                a.*,
+                u.role,
+                q.sort_order
             FROM answers a
-                     LEFT JOIN users u ON u.tg_id = a.tg_id
+            LEFT JOIN users u ON u.tg_id = a.tg_id
+            LEFT JOIN questions q ON q.id = a.question_id
             ORDER BY a.answered_at;
-                             """
-            )
+            """
+        )
         rows = await cursor.fetchall()
     return rows
 

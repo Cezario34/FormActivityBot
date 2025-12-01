@@ -35,6 +35,6 @@ settings_local.py
 *.secret
 *.key
 *.pem
-.postgres_data.*
-.redis_data.*
-.pgadmin_data.*
+.postgres_data/
+.redis_data/
+.pgadmin_data/

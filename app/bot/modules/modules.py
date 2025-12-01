@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import re
-from datetime import datetime
+from datetime import datetime, date
 import io, csv
 import pandas as pd
 
@@ -75,6 +75,9 @@ def extract_answer(message, q: dict):
             dt = datetime.strptime(text, "%d.%m.%Y").date()
         except ValueError:
             return None, "Неверный формат даты. Пример: 25.12.1990"
+        today = date.today()
+        if dt.year >= today.year:
+            return None, "Неверный формат даты. Год не может быть больше текущего."
         return dt.isoformat(), None  # чтобы хранить единообразно
 
     # 5) Телефон
@@ -112,19 +115,36 @@ def get_next_question(form: dict, cur_order: int) -> dict | None:
 
 def rows_to_csv_bytes(rows) -> bytes:
     if not rows:
-        # пустой файл, но с заголовками (можно и без)
         return b""
+
     df = pd.DataFrame(rows)
+
+    q_meta = (
+        df[["question_text", "sort_order"]]
+        .drop_duplicates()
+        .sort_values("sort_order")
+    )
+    question_cols_order = q_meta["question_text"].tolist()
+
     wide = (
         df.pivot_table(
-            index=["tg_id", "answered_at"],          # строки = одно заполнение
-            columns="question_text",               # колонки = тексты вопросов
+            index=["tg_id", "answered_at"],
+            columns="question_text",
             values="answer_text",
-            aggfunc="first"                        # если вдруг дубли — берём первый
+            aggfunc="first",
         )
         .reset_index()
     )
 
+    # 3. Переставляем колонки в нужном порядке
+    base_cols = ["tg_id", "answered_at"]
+    other_cols = [c for c in wide.columns if c not in base_cols]
+
+    ordered_q_cols = [c for c in question_cols_order if c in other_cols]
+
+    wide = wide[base_cols + ordered_q_cols]
+
+    # 4. В CSV
     buf = io.StringIO()
     wide.to_csv(buf, index=False, sep=";", encoding="utf-8-sig")
     return buf.getvalue().encode("utf-8-sig")

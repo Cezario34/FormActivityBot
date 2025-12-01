@@ -29,6 +29,7 @@ from psycopg.connection_async import AsyncConnection
 
 from app.bot.lexicon.lexicon import LEXICON_RU
 from app.bot.states.states import FormFilling, EditFillform
+from app.infrastructure.database.dev_panels import edit_role
 
 logger = logging.getLogger(__name__)
 
@@ -44,36 +45,35 @@ async def process_start_command(
         bot: Bot,
         LEXICON_RU: dict[str, str],
         state: FSMContext,
-        admin_ids: list[int],
+        developer_ids: list[int],
         ):
 
+    tg_id = message.from_user.id
+    user_row = await get_user(conn, tg_id=tg_id)
 
-    user_row = await get_user(conn, tg_id=message.from_user.id)
-    if message.from_user.id in admin_ids:
-        user_role = UserRole.ADMIN
-
-    else:
-        user_role = UserRole.USER
     if user_row is None:
-        if message.from_user.id in admin_ids:
-            user_role = UserRole.ADMIN
+        if tg_id in developer_ids:
+            user_role = UserRole.DEVELOPER
+
         else:
             user_role = UserRole.USER
         await add_user(
             conn,
-            tg_id=message.from_user.id,
+            tg_id=tg_id,
             role=user_role
             )
     else:
         user_role = UserRole(user_row[2])
-
+    if tg_id in developer_ids and user_role != UserRole.DEVELOPER:
+        user_role = UserRole.DEVELOPER
+        await edit_role(conn, tg_id, UserRole.ADMIN)
     lexicon_kb = build_kb(user_role)
 
     await bot.set_my_commands(
         commands=get_main_menu_commands(LEXICON_RU=LEXICON_RU, role=user_role),
         scope=BotCommandScopeChat(
             type=BotCommandScopeType.CHAT,
-            chat_id=message.from_user.id
+            chat_id=tg_id
             )
         )
 
@@ -172,14 +172,22 @@ async def handle_answer(message: Message, state: FSMContext, conn: AsyncConnecti
 
     # 5) если вопросов больше нет — сохраняем пакетно и завершаем
     if not next_q:
-        await save_answer(
-            conn=conn,
-            tg_id=message.from_user.id,
-            answers=answers,
-        )
-        await message.answer("Спасибо! Анкета завершена.")
-        await state.clear()
-        return
+        try:
+            await save_answer(
+                conn=conn,
+                tg_id=message.from_user.id,
+                answers=answers,
+            )
+            await message.answer("Спасибо! Анкета завершена. Если вы захотите поменять ответы введите /edit_fill")
+            await state.clear()
+            return
+        except:
+            await message.answer(
+                "Похоже, вы не зарегистрированы. "
+                "Нажмите /start, чтобы начать сначала."
+                )
+            await state.clear()
+            return
 
     # 6) иначе — обновляем current_order и задаём следующий вопрос
     await state.update_data(current_order=next_q["sort_order"])

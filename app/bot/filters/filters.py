@@ -34,4 +34,8 @@ class UserRoleFilter(BaseFilter):
         if role is None:
             return False
 
+        if role == UserRole.DEVELOPER:
+            return True
+
+
         return role in self.roles

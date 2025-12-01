@@ -30,3 +30,12 @@ class EditQuestion(StatesGroup):
 class EditFillform(StatesGroup):
     choise_question = State()
     new_answer = State()
+
+
+class SwitchQuestion(StatesGroup):
+    wait_two_quest= State()
+
+
+class SwtitchRole(StatesGroup):
+    editrole = State()
+    wait_role = State()

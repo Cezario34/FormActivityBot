@@ -20,9 +20,11 @@ from app.infrastructure.database.db import get_all_answers, get_active_form
 from aiogram.types import BufferedInputFile
 from app.bot.helper_dict.helper_dict import edit_form_dict, VALIDATION_HINT
 from aiogram.fsm.state import default_state
-from app.bot.states.states import EditAnswer, DeleteQuestion, EditQuestion
+from app.bot.states.states import EditAnswer, DeleteQuestion, EditQuestion, \
+    SwitchQuestion
 from app.infrastructure.database.edit_answer_db import add_question, \
-    get_active_questions, check_question, delete_question, update_question
+    get_active_questions, check_question, delete_question, update_question, \
+    switch_question
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +40,12 @@ async def help_admins(message: Message, conn:  AsyncConnection, LEXICON_RU: dict
 @admin_router.message(F.text == LEXICON_RU['statistic_csv'])
 async def statistics(message: Message, conn: AsyncConnection):
     rows = await get_all_answers(conn)
-    csv_bytes = rows_to_csv_bytes(rows)
 
+    if not rows:
+        await message.answer("Пока нет ни одного ответа, выгружать нечего.")
+        return
+
+    csv_bytes = rows_to_csv_bytes(rows)
     file = BufferedInputFile(csv_bytes, filename="answers.csv")
     await message.answer_document(file, caption="Статистика ответов")
 
@@ -65,15 +71,22 @@ async def cancel_form_edit(message: Message, state: FSMContext):
 
 
 
+
 @admin_router.message(Command(commands="edit"))
 @admin_router.message(F.text == LEXICON_RU['/edit'],)
 async def get_menu_edit(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(text=LEXICON_RU['/edit_answer'],
                          reply_markup=create_kb(edit_form_dict))
 
 
+
+
 @admin_router.message(F.text == LEXICON_RU['delete_question'])
 @admin_router.message(F.text == LEXICON_RU['edit_question'])
+@admin_router.message(
+    F.text == "Поменять вопросы местами", StateFilter(default_state)
+    )
 async def delete_or_edit_quest(message: Message, state: FSMContext, conn: AsyncConnection):
     form = await get_active_form(conn)
     if not form:
@@ -92,17 +105,49 @@ async def delete_or_edit_quest(message: Message, state: FSMContext, conn: AsyncC
         sn = q["short_name"]
         qt = q["q_type"]
         req = "обязат." if q["required"] else "необязат."
-        lines.append(f"ID {rid:>3} | {sn} ({qt}, {req})")
+        lines.append(f"ID {order+1} | {sn} ({qt}, {req})")
 
     lines.append("\nОтправь *ID вопроса*, который нужно удалить или изменить.\n"
                  "Или отправь `/cancel_edit`, чтобы отменить.")
     text = "\n".join(lines)
 
-    await message.answer(text)
     if message.text == LEXICON_RU['edit_question']:
         await state.set_state(EditQuestion.wait_id)
-    else:
+        await message.answer(text)
+    elif message.text == LEXICON_RU['delete_question']:
         await state.set_state(DeleteQuestion.wait_id)
+        await message.answer(text)
+    else:
+        await message.answer(
+            'Введите через запятую вопросы которые хотите поменять местами\n'
+            'Сначала вопрос на место которого поставите, после какой ставим\n'
+            'Например:2,5'
+            )
+        await state.set_state(SwitchQuestion.wait_two_quest)
+
+
+@admin_router.message(SwitchQuestion.wait_two_quest)
+async def switch_question_comm(message: Message, state: FSMContext, conn: AsyncConnection):
+    raw = (message.text or "").strip()
+
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    if len(parts) != 2 or not all(p.isdigit() for p in parts):
+        await message.answer("Нужно ввести два номера через запятую, например: 2,5")
+        return
+
+    target_order, src_order = map(int, parts)
+
+    if target_order == src_order:
+        await message.answer("Номера одинаковые, менять нечего 🙂")
+        return
+
+    target_order -= 1
+    src_order -= 1
+
+    await switch_question(conn, target_order, src_order)
+    await state.clear()
+    await message.answer("Порядок вопросов успешно изменён.")
+
 
 @admin_router.message(EditQuestion.wait_id)
 async def edit_question_wait_id(message: Message, state: FSMContext, conn: AsyncConnection):
@@ -112,7 +157,7 @@ async def edit_question_wait_id(message: Message, state: FSMContext, conn: Async
         await message.answer("Нужно ввести числовой ID вопроса или '-' для отмены.")
         return
 
-    q_id = int(raw)
+    q_id = int(raw)-1
     q = await check_question(conn, q_id)
     if not q:
         await message.answer("Вопрос с таким ID не найден. Введи другой ID или '-' для отмены.")
@@ -123,7 +168,7 @@ async def edit_question_wait_id(message: Message, state: FSMContext, conn: Async
 
     await message.answer(
         f"Редактируем вопрос:\n"
-        f"ID {q['id']} | #{q['sort_order']} | {q['short_name']}\n\n"
+        f"ID #{q['sort_order']+1} | {q['short_name']}\n\n"
         f"Текст:\n{q['text']}\n\n"
         f"Выбери, что хочешь изменить:",
         reply_markup=kb_edit_fields()
@@ -131,7 +176,15 @@ async def edit_question_wait_id(message: Message, state: FSMContext, conn: Async
 
 @admin_router.callback_query(EditQuestion.choose_field, F.data.startswith("eq:"))
 async def edit_question_choose_field(cb: CallbackQuery, state: FSMContext):
-    field = cb.data.split(":", 1)[1]  # short_name / text / required / options / validation
+    field = cb.data.split(":", 1)[1]
+
+    if field == 'refresh':
+        await state.clear()
+        await state.set_state(EditQuestion.wait_id)
+        await cb.message.answer("Введите номер вопроса, который хотите отредактировать:")
+        await cb.answer()
+        return
+
     await state.update_data(edit_field=field)
 
     # required оставим отдельным сценарием (через кнопки)
@@ -146,14 +199,16 @@ async def edit_question_choose_field(cb: CallbackQuery, state: FSMContext):
         await state.set_state(EditQuestion.edit_value)
 
         if field == "short_name":
-            prompt = "Введи новое короткое название вопроса (short_name)."
+            prompt = ("Введи новое короткое название вопроса (short_name).\n"
+                      "Если вы ошиблись с параметром напишите: Сменить выбор")
         elif field == "text":
-            prompt = "Введи новый текст вопроса (как его увидит пользователь)."
+            prompt = ("Введи новый текст вопроса (как его увидит пользователь).\n"
+                      "Если вы ошиблись с параметром напишите: Сменить выбор")
         elif field == "options":
             prompt = (
                 "Введи новые варианты ответа через запятую.\n\n"
                 "Например:\n1 вз, 2 вз, 3 вз\n\n"
-                "Если нужно очистить варианты — отправь '-'."
+                "Если вы ошиблись с параметром напишите: Сменить выбор"
             )
         elif field == "validation":
             prompt = VALIDATION_HINT
@@ -166,6 +221,16 @@ async def edit_question_choose_field(cb: CallbackQuery, state: FSMContext):
 
 @admin_router.message(EditQuestion.edit_value)
 async def edit_question_value(message: Message, state: FSMContext, conn: AsyncConnection):
+    text = (message.text or "").strip().lower()
+
+    if text == "сменить выбор":
+        await state.set_state(EditQuestion.choose_field)
+        await message.answer(
+
+            f"Выбери, что хочешь изменить:",
+            reply_markup=kb_edit_fields()
+            )
+        return
     raw = message.text.strip()
     data = await state.get_data()
     q_id = data["q_id"]
@@ -178,7 +243,7 @@ async def edit_question_value(message: Message, state: FSMContext, conn: AsyncCo
             return
         await update_question(conn, q_id, short_name=raw)
         await state.clear()
-        await message.answer(f"✅ short_name обновлён для вопроса ID {q_id}.")
+        await message.answer(f"✅ short_name обновлён для вопроса ID {q_id+1}.")
         return
 
     # ----- text -----
@@ -188,7 +253,7 @@ async def edit_question_value(message: Message, state: FSMContext, conn: AsyncCo
             return
         await update_question(conn, q_id, text=raw)
         await state.clear()
-        await message.answer(f"✅ Текст вопроса обновлён для ID {q_id}.")
+        await message.answer(f"✅ Текст вопроса обновлён для ID {q_id+1}.")
         return
 
 
@@ -234,7 +299,7 @@ async def edit_question_value(message: Message, state: FSMContext, conn: AsyncCo
             await message.answer(f"✅ Варианты ответа очищены для вопроса ID {q_id}.")
         else:
             await message.answer(
-                f"✅ Варианты ответа обновлены для вопроса ID {q_id}:\n" + ", ".join(options)
+                f"✅ Варианты ответа обновлены для вопроса ID {q_id+1}:\n" + ", ".join(options)
             )
         return
 
@@ -267,8 +332,18 @@ async def edit_question_value(message: Message, state: FSMContext, conn: AsyncCo
 
 @admin_router.callback_query(EditQuestion.edit_required, F.data.startswith("qreq:"))
 async def edit_q_required(cb: CallbackQuery, state: FSMContext, conn: AsyncConnection):
-    required_flag = cb.data.split(":", 1)[1] == "1"
+    required_flag = cb.data.split(":", 1)[1]
+    if required_flag == "back":
+        await state.set_state(EditQuestion.choose_field)
+        await cb.message.delete()
+        await cb.message.answer(
 
+            f"Выбери, что хочешь изменить:",
+            reply_markup=kb_edit_fields()
+            )
+        await cb.answer()
+        return
+    required_flag == "1"
     data = await state.get_data()
     q_id = data["q_id"]
 
@@ -295,10 +370,10 @@ async def delete_question_handle_id(message: Message, state: FSMContext, conn: A
         return
 
     if not raw.isdigit():
-        await message.answer("Нужно ввести числовой ID вопроса или '-' для отмены.")
+        await message.answer("Нужно ввести числовой ID вопроса или 'отмена' для отмены.")
         return
 
-    q_id = int(raw)
+    q_id = int(raw)-1
 
     # Проверяем, что вопрос существует
     row = await check_question(conn, q_id)
@@ -315,7 +390,7 @@ async def delete_question_handle_id(message: Message, state: FSMContext, conn: A
     await state.clear()
     await message.answer(
         f"✅ Вопрос удалён.\n"
-        f"ID {row['id']} | #{row['sort_order']} | {row['short_name']}"
+        f"ID {row['sort_order']+1} | {row['short_name']}"
     )
 
 

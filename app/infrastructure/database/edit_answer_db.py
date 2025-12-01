@@ -47,19 +47,15 @@ async def add_question(
         new_id, so = await cur.fetchone()
     return new_id
 
-async def delete_question(conn: AsyncConnection, q_id: int) -> bool:
-    """
-    Удаляет вопрос по id.
-    """
+async def delete_question(conn: AsyncConnection, sort_order: int) -> bool:
     async with conn.cursor() as cur:
         await cur.execute(
-            "DELETE FROM answers WHERE question_id = %s;",
-            (str(q_id),),   # важно: str(q_id), т.к. колонка TEXT
-        )
-    async with conn.cursor() as cur:
-        await cur.execute(
-            "DELETE FROM questions WHERE id = %s RETURNING id;",
-            (q_id,),
+            """
+            DELETE FROM questions
+            WHERE sort_order = %s
+            RETURNING id;
+            """,
+            (sort_order,),
         )
         row = await cur.fetchone()
 
@@ -87,7 +83,7 @@ async def check_question(conn: AsyncConnection, q_id: int) -> dict[str, Any] | N
             """
             SELECT id, short_name, sort_order, text
             FROM questions
-            WHERE id = %s;
+            WHERE sort_order = %s;
             """,
             (q_id,),
         )
@@ -108,7 +104,6 @@ async def update_question(
     q_id: int,
     **fields: Any,
 ) -> None:
-
     clean_fields: dict[str, Any] = {}
 
     for k, v in fields.items():
@@ -116,11 +111,9 @@ async def update_question(
             continue
 
         if k == "validation":
-            # validation учитываем всегда, даже если None
-            clean_fields[k] = v
+            clean_fields[k] = v        # учитываем даже None
         else:
-            # остальные поля: None = "не обновлять"
-            if v is not None:
+            if v is not None:          # None = не обновлять
                 clean_fields[k] = v
 
     if not clean_fields:
@@ -137,13 +130,33 @@ async def update_question(
         params.append(value)
 
     params.append(q_id)
-    logger.debug(params)
-    logger.debug(clean_fields)
+
     query = f"""
         UPDATE questions
         SET {', '.join(set_clauses)}
-        WHERE id = %s;
+        WHERE sort_order = %s;
     """
 
     async with conn.cursor() as cur:
         await cur.execute(query, params)
+
+
+async def switch_question(conn: AsyncConnection, order_a: int, order_b: int) -> None:
+    async with conn.cursor() as cur:
+        # 1. Уводим первый порядок в буфер, чтобы не словить конфликт
+        await cur.execute(
+            "UPDATE questions SET sort_order = -1 WHERE sort_order = %s;",
+            (order_a,),
+        )
+
+        # 2. На место первого ставим второй
+        await cur.execute(
+            "UPDATE questions SET sort_order = %s WHERE sort_order = %s;",
+            (order_a, order_b),
+        )
+
+        # 3. На место второго ставим буфер
+        await cur.execute(
+            "UPDATE questions SET sort_order = %s WHERE sort_order = -1;",
+            (order_b,),
+        )

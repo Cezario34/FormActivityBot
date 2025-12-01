@@ -90,7 +90,9 @@ async def main():
                             CREATE TABLE IF NOT EXISTS answers(
                                 id BIGSERIAL PRIMARY KEY,
                                 tg_id BIGINT NOT NULL REFERENCES users(tg_id) ON DELETE CASCADE,
-                                question_id TEXT NOT NULL,
+                                question_id INT NOT NULL
+                                    REFERENCES questions(id)
+                                    ON DELETE CASCADE,
                                 question_text TEXT NOT NULL,
                                 answer_text TEXT NOT NULL,
                                 answered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -119,7 +121,7 @@ async def main():
                             -- 0
                             (1, 'ФИО',
                              'Введите ФИО полностью
-                              Например: Иванов Иван Иванович',
+Например: Иванов Иван Иванович',
                              'text', 0, true,
                              '{"min_len": 2, "max_len": 120}'::jsonb,
                              NULL),
@@ -127,7 +129,7 @@ async def main():
                             -- 1
                             (1, 'Телефон',
                              'Введите номер телефона
-                              Например: +79123456789',
+Например: +79123456789',
                              'phone', 1, true,
                              '{"regex": "^\\\\+?7\\\\d{10}$"}'::jsonb,
                              NULL),
@@ -135,7 +137,7 @@ async def main():
                             -- 2
                             (1, 'Звание',
                              'Введите звание
-                             Например: Рядовой',
+Например: Рядовой',
                              'text', 2, true,
                              '{"min_len": 1, "max_len": 150}'::jsonb,
                              NULL),
@@ -143,7 +145,7 @@ async def main():
                             -- 3
                             (1, 'Должность',
                              'Введите должность
-                              Например:Связист',
+Например:Связист',
                              'text', 3, true,
                              '{"min_len": 1, "max_len": 150}'::jsonb,
                              NULL),
@@ -151,7 +153,7 @@ async def main():
                             -- 4
                             (1, 'Подразделение',
                              'Введите подразделение:
-                             Например:2 подразделение',
+Например:2 подразделение',
                              'text', 4, true,
                              '{"min_len": 1, "max_len": 150}'::jsonb,
                              NULL),
@@ -166,7 +168,7 @@ async def main():
                             -- 7
                             (1, 'Дата рождения',
                              'Введите день рождения(дд.мм.гггг)
-                             Например: 27.12.1990',
+Например: 27.12.1990',
                              'date', 7, true,
                              '{"format": "dd.mm.yyyy", "min_age": 16, "max_age": 70}'::jsonb,
                              NULL),
@@ -174,7 +176,7 @@ async def main():
                             -- 8
                             (1, 'Модель бейджика',
                              'Введите модель бейджика.
-                             Например: хххх-хххх',
+Например: хххх-хххх',
                              'choice', 8, true,
                              NULL,
                              ARRAY['1', '2', '3']),
@@ -182,7 +184,7 @@ async def main():
                             -- 9
                             (1, 'Номер бейджика',
                              'Введите номер прикрепленного бейджика.
-                             Например: хххх-хххх',
+Например: хххх-хххх',
                              'text', 9, true,
                              '{"min_len": 1, "max_len": 150}'::jsonb,
                              NULL),
@@ -190,7 +192,7 @@ async def main():
                             -- 10
                             (1, 'Размер головы',
                              'Введите размер головы.
-                             Например: 50',
+Например: 50',
                              'number', 10, true,
                              '{"min": 10, "max": 100}'::jsonb,
                              NULL),
@@ -198,7 +200,7 @@ async def main():
                             -- 11
                             (1, 'Размер одежды',
                              'Введите размер одежды
-                             Например: 50',
+Например: 50',
                              'number', 11, true,
                              '{"min_len": 1, "max_len": 250}'::jsonb,
                              NULL),
@@ -206,7 +208,7 @@ async def main():
                             -- 12
                             (1, 'Рост',
                              'Введите рост (см)
-                             Например: 180',
+Например: 180',
                              'number', 12, true,
                              '{"min": 110, "max": 330}'::jsonb,
                              NULL),
@@ -214,9 +216,9 @@ async def main():
                             -- 13
                             (1, 'Размер обуви',
                              'Введите размер обуви
-                             Например: 43',
-                             'number', 13, true,
-                             '{"min": 15, "max": 95}'::jsonb,
+Например: 43',
+                             'text', 13, true,
+                             '{"min_len": 1, "max_len": 150}'::jsonb,
                              NULL);
 
                         """
