@@ -4,6 +4,7 @@ import psycopg_pool
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.redis import RedisStorage
 from app.bot.handlers.admin import admin_router
 from app.bot.handlers.others import others_router
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 async def main(config: Config) -> None:
     logger.info("Starting bot...")
     # Инициализируем хранилище
-    storage = RedisStorage(
+    redis = RedisStorage(
         redis=Redis(
             host=config.redis.host,
             port=config.redis.port,
@@ -35,6 +36,7 @@ async def main(config: Config) -> None:
             username=config.redis.username,
         )
     )
+    storage = RedisStorage(redis=redis, key_builder=DefaultKeyBuilder(with_destiny=True))
 
     # Инициализируем бот и диспетчер
     bot = Bot(

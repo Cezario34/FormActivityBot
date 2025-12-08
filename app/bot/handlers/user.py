@@ -6,6 +6,8 @@ from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import KICKED, ChatMemberUpdatedFilter, Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
+
+from app.bot.dialogs.dialogs_user_command import create_user_and_role
 from app.bot.enums.roles import UserRole
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from aiogram.types import BotCommandScopeChat, ChatMemberUpdated, Message
@@ -35,7 +37,11 @@ logger = logging.getLogger(__name__)
 
 user_router = Router()
 
-
+some_dialog = Dialog(
+    Window(
+        Start(Const('Во 2-й диалог ▶️'), id='go_second_dialog', state=SecondDialogSG.start)
+    )
+)
 
 @user_router.message(CommandStart())
 @user_router.message(F.text == LEXICON_RU['/restart'])
@@ -49,24 +55,7 @@ async def process_start_command(
         ):
 
     tg_id = message.from_user.id
-    user_row = await get_user(conn, tg_id=tg_id)
-
-    if user_row is None:
-        if tg_id in developer_ids:
-            user_role = UserRole.DEVELOPER
-
-        else:
-            user_role = UserRole.USER
-        await add_user(
-            conn,
-            tg_id=tg_id,
-            role=user_role
-            )
-    else:
-        user_role = UserRole(user_row[2])
-    if tg_id in developer_ids and user_role != UserRole.DEVELOPER:
-        user_role = UserRole.DEVELOPER
-        await edit_role(conn, tg_id, UserRole.ADMIN)
+    user_role = await create_user_and_role(conn, tg_id, developer_ids)
     lexicon_kb = build_kb(user_role)
 
     await bot.set_my_commands(

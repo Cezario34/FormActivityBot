@@ -78,6 +78,8 @@ def extract_answer(message, q: dict):
         today = date.today()
         if dt.year >= today.year:
             return None, "Неверный формат даты. Год не может быть больше текущего."
+        if dt.year <= 1950:
+            return None, "Неверный формат даты."
         return dt.isoformat(), None  # чтобы хранить единообразно
 
     # 5) Телефон
