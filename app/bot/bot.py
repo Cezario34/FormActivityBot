@@ -6,6 +6,8 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram_dialog import setup_dialogs
+
 from app.bot.handlers.admin import admin_router
 from app.bot.handlers.others import others_router
 from app.bot.handlers.settings import settings_router
@@ -16,6 +18,7 @@ from app.bot.middlewares.database import DataBaseMiddleware
 # from app.bot.middlewares.lang_settings import LangSettingsMiddleware
 # from app.bot.middlewares.shadow_ban import ShadowBanMiddleware
 # from app.bot.middlewares.statistics import ActivityCounterMiddleware
+from app.bot.dialogs.dialogs_user_command import start_dialog
 from app.infrastructure.database.connections import get_pg_pool
 from config.config import Config
 from redis.asyncio import Redis
@@ -27,15 +30,13 @@ logger = logging.getLogger(__name__)
 async def main(config: Config) -> None:
     logger.info("Starting bot...")
     # Инициализируем хранилище
-    redis = RedisStorage(
-        redis=Redis(
+    redis=Redis(
             host=config.redis.host,
             port=config.redis.port,
             db=config.redis.db,
             password=config.redis.password,
             username=config.redis.username,
         )
-    )
     storage = RedisStorage(redis=redis, key_builder=DefaultKeyBuilder(with_destiny=True))
 
     # Инициализируем бот и диспетчер
@@ -56,8 +57,10 @@ async def main(config: Config) -> None:
 
 
     logger.info("Including routers...")
-    dp.include_routers(settings_router, admin_router, user_router, others_router)
+    dp.include_routers(settings_router, admin_router, user_router, others_router, start_dialog)
+
     dp.update.middleware(DataBaseMiddleware())
+    setup_dialogs(dp)
     await bot.delete_webhook(drop_pending_updates=True)
 
     # Запускаем поллинг

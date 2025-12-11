@@ -6,8 +6,9 @@ from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import KICKED, ChatMemberUpdatedFilter, Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
+from aiogram_dialog import DialogManager,StartMode
 
-from app.bot.dialogs.dialogs_user_command import create_user_and_role
+from app.bot.services.users import create_user_and_role
 from app.bot.enums.roles import UserRole
 from app.bot.keyboards.menu_button import get_main_menu_commands
 from aiogram.types import BotCommandScopeChat, ChatMemberUpdated, Message
@@ -15,6 +16,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from app.bot.keyboards.keyboard import create_kb, keyboard_answer
 from app.bot.keyboards.info_kb import build_kb
+from app.bot.states.users import StartDialogSG
 from app.infrastructure.database.db import (
     add_user,
     get_user,
@@ -37,38 +39,32 @@ logger = logging.getLogger(__name__)
 
 user_router = Router()
 
-some_dialog = Dialog(
-    Window(
-        Start(Const('Во 2-й диалог ▶️'), id='go_second_dialog', state=SecondDialogSG.start)
-    )
-)
-
 @user_router.message(CommandStart())
 @user_router.message(F.text == LEXICON_RU['/restart'])
 async def process_start_command(
         message: Message,
-        conn: AsyncConnection,
-        bot: Bot,
-        LEXICON_RU: dict[str, str],
-        state: FSMContext,
-        developer_ids: list[int],
-        ):
+        dialog_manager: DialogManager,):
+    conn = dialog_manager.middleware_data["conn"]
+    developer_ids = dialog_manager.middleware_data["developer_ids"]
+    bot = dialog_manager.middleware_data["bot"]
+    LEXICON_RU = dialog_manager.middleware_data["LEXICON_RU"]
 
-    tg_id = message.from_user.id
-    user_role = await create_user_and_role(conn, tg_id, developer_ids)
-    lexicon_kb = build_kb(user_role)
+    user_role = await create_user_and_role(conn, message.from_user.id, developer_ids )
 
     await bot.set_my_commands(
         commands=get_main_menu_commands(LEXICON_RU=LEXICON_RU, role=user_role),
         scope=BotCommandScopeChat(
             type=BotCommandScopeType.CHAT,
-            chat_id=tg_id
-            )
+            chat_id=message.from_user.id,
+        ),
+    )
+
+    await dialog_manager.start(
+        StartDialogSG.start,
+        mode=StartMode.RESET_STACK,
+        data={"user_role": user_role},
         )
 
-    await message.answer(text=LEXICON_RU.get("/start"),
-                         reply_markup=create_kb(lexicon_kb, width=2))
-    await state.clear()
 
 
 @user_router.message(Command(commands="help"))
