@@ -50,26 +50,21 @@ async def statistics(message: Message, conn: AsyncConnection):
     await message.answer_document(file, caption="Статистика ответов")
 
 
-@admin_router.message(Command(commands="cancel_edit"), ~StateFilter(default_state))
-@admin_router.message(F.text == "Выйти из меню редактированию", ~StateFilter(default_state))
+@admin_router.message(Command(commands="cancel_edit"))
+@admin_router.message(F.text == "Выйти из меню редактированию")
 async def cancel_form(message: Message, state: FSMContext):
+    current = await state.get_state()
+    if current is None:
+        await message.answer(
+            text='Вы сейчас ничего не редактируете'
+            )
+        return
     await message.answer(
         text='Вы вышли из меню редактора\n\n'
              'Чтобы снова перейти к редактированию - '
              'отправьте команду /edit'
     )
-    # Сбрасываем состояние и очищаем данные, полученные внутри состояний
     await state.clear()
-
-
-@admin_router.message(Command(commands="cancel_edit"), StateFilter(default_state))
-@admin_router.message(F.text == "Выйти из меню редактированию", StateFilter(default_state))
-async def cancel_form_edit(message: Message, state: FSMContext):
-    await message.answer(
-        text='Вы сейчас ничего не редактируете'
-    )
-
-
 
 
 @admin_router.message(Command(commands="edit"))
@@ -154,13 +149,13 @@ async def edit_question_wait_id(message: Message, state: FSMContext, conn: Async
     raw = message.text.strip()
 
     if not raw.isdigit():
-        await message.answer("Нужно ввести числовой ID вопроса или '-' для отмены.")
+        await message.answer("Нужно ввести числовой ID вопроса или /cancel_edit для отмены.")
         return
 
     q_id = int(raw)-1
     q = await check_question(conn, q_id)
     if not q:
-        await message.answer("Вопрос с таким ID не найден. Введи другой ID или '-' для отмены.")
+        await message.answer("Вопрос с таким ID не найден. Введи другой ID или /cancel_edit для отмены.")
         return
 
     await state.update_data(q_id=q_id)  # запоминаем, что редактируем
@@ -370,7 +365,7 @@ async def delete_question_handle_id(message: Message, state: FSMContext, conn: A
         return
 
     if not raw.isdigit():
-        await message.answer("Нужно ввести числовой ID вопроса или 'отмена' для отмены.")
+        await message.answer("Нужно ввести числовой ID вопроса или /cancel_edit для отмены.")
         return
 
     q_id = int(raw)-1
@@ -378,7 +373,7 @@ async def delete_question_handle_id(message: Message, state: FSMContext, conn: A
     # Проверяем, что вопрос существует
     row = await check_question(conn, q_id)
     if not row:
-        await message.answer("Вопроса с таким ID не найдено. Введи другой ID или '-' для отмены.")
+        await message.answer("Вопроса с таким ID не найдено. Введи другой ID или /cancel_edit для отмены.")
         return
 
     # Удаляем

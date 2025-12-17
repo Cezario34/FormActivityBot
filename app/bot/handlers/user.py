@@ -14,7 +14,8 @@ from app.bot.keyboards.menu_button import get_main_menu_commands
 from aiogram.types import BotCommandScopeChat, ChatMemberUpdated, Message
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from app.bot.keyboards.keyboard import create_kb, keyboard_answer
+from app.bot.keyboards.keyboard import create_kb, keyboard_answer, \
+    make_reply_bk_titles
 from app.bot.keyboards.info_kb import build_kb
 from app.bot.states.users import StartDialogSG
 from app.infrastructure.database.db import (
@@ -58,12 +59,12 @@ async def process_start_command(
             chat_id=message.from_user.id,
         ),
     )
-
     await dialog_manager.start(
         StartDialogSG.start,
         mode=StartMode.RESET_STACK,
         data={"user_role": user_role},
         )
+    await message.answer("Выберите действие:", reply_markup=make_reply_bk_titles(user_role, witdh=2))
 
 
 
@@ -71,28 +72,30 @@ async def process_start_command(
 @user_router.message(F.text == LEXICON_RU['/help_command'])
 async def process_help_command(message: Message, LEXICON_RU: dict[str, str]):
     await message.answer(text=LEXICON_RU.get("/help"))
+    return
 
 
+@user_router.message(Command("cancel"))
+@user_router.message(F.text == "Отменить заполнение")
+async def process_cancel_command(message: Message, state: FSMContext):
+    current = await state.get_state()
+    if current is None:
+        await message.answer(
+            text='Отменять нечего. Вы вне заполнения анкеты\n\n'
+                 'Чтобы перейти к заполнению анкеты - '
+                 'отправьте команду /fillform'
+        )
+        return
+    else:
+        await message.answer(
+            text='Вы вышли из заполнения анкеты\n\n'
+                 'Чтобы снова перейти к заполнению анкеты - '
+                 'отправьте команду /fillform'
+            )
+        # Сбрасываем состояние и очищаем данные, полученные внутри состояний
+        await state.clear()
 
-@user_router.message(Command(commands='cancel'), StateFilter(default_state))
-@user_router.message(F.text == "Отменить заполнение", StateFilter(default_state))
-async def process_cancel_command(message: Message):
-    await message.answer(
-        text='Отменять нечего. Вы вне заполнения анкеты\n\n'
-             'Чтобы перейти к заполнению анкеты - '
-             'отправьте команду /fillform'
-    )
 
-@user_router.message(Command(commands="cancel"), ~StateFilter(default_state))
-@user_router.message(F.text == "Отменить заполнение", ~StateFilter(default_state))
-async def cancel_form(message: Message, state: FSMContext):
-    await message.answer(
-        text='Вы вышли из заполнения анкеты\n\n'
-             'Чтобы снова перейти к заполнению анкеты - '
-             'отправьте команду /fillform'
-    )
-    # Сбрасываем состояние и очищаем данные, полученные внутри состояний
-    await state.clear()
 
 
 @user_router.message(Command(commands="fillform"))

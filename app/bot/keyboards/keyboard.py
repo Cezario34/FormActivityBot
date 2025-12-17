@@ -3,6 +3,8 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from app.bot.lexicon.lexicon import LEXICON_RU
 from app.bot.enums.roles import UserRole
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from app.bot.keyboards.info_kb import build_kb
+
 
 # Функция для формирования инлайн-клавиатуры на лету
 def create_kb(lexicon_kb: dict[str, str], width: int = 2):
@@ -44,3 +46,13 @@ def kb_edit_fields() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="Варианты (options)",   callback_data="eq:options")],
         [InlineKeyboardButton(text="Выбрать другой вопрос",    callback_data="eq:refresh")],
     ])
+
+def make_reply_bk_titles(role: UserRole, witdh=2) -> ReplyKeyboardMarkup:
+    kb_dict = build_kb(role)
+    titles = list(kb_dict.values())
+
+    rows: list[list[KeyboardButton]] = []
+    for i in range(0, len(titles), witdh):
+        rows.append([KeyboardButton(text=t) for t in titles[i:i + witdh]])
+
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, one_time_keyboard=True)
