@@ -4,10 +4,12 @@ from contextlib import suppress
 from aiogram import Bot, Router, F
 from aiogram.enums import BotCommandScopeType
 from aiogram.exceptions import TelegramBadRequest
+from aiogram_dialog import DialogManager, StartMode
 from psycopg import AsyncConnection
 
 from app.bot.enums.roles import UserRole
 from app.bot.filters.filters import  UserRoleFilter
+from app.bot.getter.admins import delq_list_getter
 from app.bot.keyboards.keyboard import keyboard_answer, create_kb, kb_q_types, \
     kb_required, kb_edit_fields
 from app.bot.lexicon.lexicon import LEXICON_RU
@@ -16,6 +18,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import BotCommandScopeChat, ChatMemberUpdated, Message, \
     CallbackQuery
 from app.bot.modules.modules import rows_to_csv_bytes
+from app.bot.states.admin import AdminDeleteQuestionSG
 from app.infrastructure.database.db import get_all_answers, get_active_form
 from aiogram.types import BufferedInputFile
 from app.bot.helper_dict.helper_dict import edit_form_dict, VALIDATION_HINT
@@ -70,6 +73,7 @@ async def cancel_form(message: Message, state: FSMContext):
 @admin_router.message(Command(commands="edit"))
 @admin_router.message(F.text == LEXICON_RU['/edit'],)
 async def get_menu_edit(message: Message, state: FSMContext):
+
     await state.clear()
     await message.answer(text=LEXICON_RU['/edit_answer'],
                          reply_markup=create_kb(edit_form_dict))
@@ -78,39 +82,55 @@ async def get_menu_edit(message: Message, state: FSMContext):
 
 
 @admin_router.message(F.text == LEXICON_RU['delete_question'])
+async def start_delete_question(message: Message, dialog_manager: DialogManager):
+    await dialog_manager.start(AdminDeleteQuestionSG.show_questions, mode=StartMode.RESET_STACK)
+
+async def delq_on_id_input(message: Message,widget, dialog_manager: DialogManager, **kwargs):
+    text = (message.text or "").strip()
+
+    # если нет активных вопросов — просто перерисуем текущее окно (оно покажет причину)
+    data = await delq_list_getter(dialog_manager, **kwargs)
+    if not data.get("has_questions"):
+        await message.answer(data["text"])
+        return
+
+    if not text.isdigit():
+        await message.answer("Нужно ввести номер вопроса (число), например: 3")
+        return
+
+    num = int(text)
+    if num <= 0:
+        await message.answer("Номер должен быть >= 1")
+        return
+
+    q_id = num - 1  # как у тебя: номер -> внутренний id/индекс
+    conn = dialog_manager.middleware_data["conn"]
+    q = await check_question(conn, q_id)
+    if not q:
+        await message.answer("Вопрос с таким номером не найден. Введи другой.")
+        return
+
+    # сохраняем, что хотим удалить
+    dialog_manager.dialog_data["q_id"] = q_id
+
+    # переходим к окну подтверждения
+    await dialog_manager.switch_to(AdminDeleteQuestionSG.confirm)
+
+
+
+
+
+
 @admin_router.message(F.text == LEXICON_RU['edit_question'])
 @admin_router.message(
     F.text == "Поменять вопросы местами", StateFilter(default_state)
     )
+
+
+
 async def delete_or_edit_quest(message: Message, state: FSMContext, conn: AsyncConnection):
-    form = await get_active_form(conn)
-    if not form:
-        await message.answer("Нет активной формы. Сначала создайте/активируйте анкету.")
-        return
-
-    questions = await get_active_questions(conn, form["id"])
-    if not questions:
-        await message.answer("В активной анкете нет вопросов.")
-        return
-
-    lines = ["Текущие вопросы анкеты:\n"]
-    for q in questions:
-        rid = q["id"]
-        order = q["sort_order"]
-        sn = q["short_name"]
-        qt = q["q_type"]
-        req = "обязат." if q["required"] else "необязат."
-        lines.append(f"ID {order+1} | {sn} ({qt}, {req})")
-
-    lines.append("\nОтправь *ID вопроса*, который нужно удалить или изменить.\n"
-                 "Или отправь `/cancel_edit`, чтобы отменить.")
-    text = "\n".join(lines)
-
     if message.text == LEXICON_RU['edit_question']:
         await state.set_state(EditQuestion.wait_id)
-        await message.answer(text)
-    elif message.text == LEXICON_RU['delete_question']:
-        await state.set_state(DeleteQuestion.wait_id)
         await message.answer(text)
     else:
         await message.answer(
@@ -357,12 +377,6 @@ async def edit_q_required(cb: CallbackQuery, state: FSMContext, conn: AsyncConne
 @admin_router.message(DeleteQuestion.wait_id)
 async def delete_question_handle_id(message: Message, state: FSMContext, conn: AsyncConnection):
     raw = message.text.strip()
-
-    # отмена
-    if raw == "-" or raw.lower() in {"отмена", "cancel"}:
-        await state.clear()
-        await message.answer("Удаление отменено.")
-        return
 
     if not raw.isdigit():
         await message.answer("Нужно ввести числовой ID вопроса или /cancel_edit для отмены.")

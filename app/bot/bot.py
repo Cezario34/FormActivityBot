@@ -8,6 +8,7 @@ from aiogram.fsm.storage.base import DefaultKeyBuilder
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram_dialog import setup_dialogs
 
+from app.bot.dialogs.edit_menu import delete_question_dialog
 from app.bot.handlers.admin import admin_router
 from app.bot.handlers.others import others_router
 from app.bot.handlers.settings import settings_router
@@ -57,7 +58,7 @@ async def main(config: Config) -> None:
 
 
     logger.info("Including routers...")
-    dp.include_routers(settings_router, admin_router, user_router, others_router, start_dialog)
+    dp.include_routers(settings_router, admin_router, user_router, others_router, start_dialog,delete_question_dialog)
 
     dp.update.middleware(DataBaseMiddleware())
     setup_dialogs(dp)
