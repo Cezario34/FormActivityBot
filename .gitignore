@@ -29,7 +29,7 @@ log/
 
 # --- Local configs / secrets ---
 .env
-.env.*
+.env
 config_local.py
 settings_local.py
 *.secret
